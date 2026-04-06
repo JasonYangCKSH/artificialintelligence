@@ -1,4 +1,6 @@
+
 import sys
+import time
 
 
 def read_board(stream, size):
@@ -50,7 +52,8 @@ def main():
 
         elif parts[0] == "END":
             break
-
+       
 
 if __name__ == "__main__":
     main()
+    
