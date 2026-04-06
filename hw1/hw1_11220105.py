@@ -21,9 +21,11 @@ def read_board(stream, size):
 
 
 def choose_move(board):
-    # 請在此實作你的白棋策略
-    # 回傳 (x, y)
-    return 7, 7
+    size = len(board)
+    for y in range(size):
+        for x in range(size):
+            if board[y][x] == 0:
+                return x, y
 
 
 def main():
