@@ -54,7 +54,24 @@ def evaluateScore(board, x: int, y: int) -> int:
 
     Urgency: (現在不做會不會來不及)
     '''
-    pass
+    # Initialize
+    attack = 0
+    defense = 0
+
+    # ATTACK
+    board[y][x] = WHITE
+    for dx, dy in DIRECTIONS:
+        length = line_total(board, x, y, dx, dy, WHITE)
+        if length >= 4: attack += 50_000
+        if length == 3: attack += 8_000
+        if length == 2: attack += 500
+    board[y][x] = EMPTY
+    
+    
+    # DEFENSE
+    defense  = count_black_four_directions(board, x, y) * 30_000
+    defense += count_black_open_three_directions(board, x, y) * 5_000
+    
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
     size = len(board)
     opp = opponent(player)
