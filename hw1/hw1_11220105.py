@@ -1,6 +1,7 @@
 
 import sys
 import time
+import argparse
 from enum import IntEnum
 from common import *
 
@@ -38,8 +39,10 @@ def read_board(stream, size):
         raise ValueError("expected END_BOARD")
 
     return board
+# >0: white > black
+# <0: black > white
 def evaluate(board, player: int):
-    pass
+    return 0
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
     pass
 def negamax(board, depth: int, alpha: int, beta: int, player: int,
@@ -50,7 +53,7 @@ def negamax(board, depth: int, alpha: int, beta: int, player: int,
     if depth == 0:
         return evaluate(board, player) # <------white evaluate function
     #------------------------------------
-    moves = ordered_moves(board, player, # ← 【修改點2】白方版候選點排序
+    moves = ordered_moves(board, player,
                             max_candidates=max_candidates,
                             radius=radius)
     if not moves:
@@ -75,12 +78,48 @@ def negamax(board, depth: int, alpha: int, beta: int, player: int,
     return best
 
 
-def choose_move(board):
+def choose_move(board, depth: int, max_candidates: int, radius: int):
     size = len(board)
-    for y in range(size):
-        for x in range(size):
-            if board[y][x] == 0:
-                return x, y
+
+    if is_empty_board(board):
+        c = size // 2
+        return c, c
+    # 利用ordered_move()來找到candidata的(x, y)，存成list of moves
+    moves = ordered_moves(board, WHITE,
+                                max_candidates=max_candidates,
+                                radius=radius)
+    # 若moves為空，藉由legal_move()來尋找合法的落點list，並回傳第一個legal position
+    if not moves:
+        legal_now = legal_moves(board, WHITE)
+        if not legal_now:
+            raise RuntimeError("no legal moves for WHITE")
+        return legal_now[0]
+    # 預測區
+    best_score = -INF
+    best_move  = moves[0] # 預設 moves[0] 是 best candidate
+    alpha = -INF
+    beta  = INF
+    opp   = opponent(WHITE)
+    for x, y in moves: # test every (x, y) in moves
+        board[y][x] = WHITE # first predicated that white is already put
+        # 
+        if is_win_after_move(board, x, y, WHITE):
+            score = WIN_SCORE # 100_100_100
+        else: # 
+            score = -negamax(board, depth - 1, -beta, -alpha, opp,
+                                   max_candidates=max_candidates,
+                                   radius=radius)
+
+        board[y][x] = EMPTY # erase predicated condition
+
+        if score > best_score:
+            best_score = score
+            best_move  = (x, y)
+
+        if score > alpha:
+            alpha = score
+
+    return best_move
 
 
 def main():
@@ -102,7 +141,8 @@ def main():
             if board_size is None or my_role is None:
                 raise RuntimeError("engine not initialized by START")
             board = read_board(sys.stdin, board_size)
-            x, y = choose_move(board)
+            x, y = choose_move(board, depth=ARGS.depth,max_candidates=ARGS.max_candidates,
+                radius=ARGS.neighbor_radius)
             print(f"MOVE {x} {y}", flush=True)
 
         elif parts[0] == "END":
