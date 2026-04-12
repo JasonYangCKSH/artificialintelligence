@@ -44,10 +44,22 @@ def read_board(stream, size):
 def evaluate(board, player: int):
     pass
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
-    
     size = len(board)
     opp = opponent(player)
-
+    candidates = set()
+    for y in range(size):
+        for x in range(size):
+            if board[y][x] != EMPTY:
+                for dy in range(-radius, radius + 1):
+                    for dx in range(-radius, radius + 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        nx, ny = x + dx, y + dy
+                        if not(0 <= nx < size and 0 <= ny < size):
+                            continue
+                        if board[ny][nx] != EMPTY:
+                            continue
+                        candidates.add((nx, ny))
 
 def choose_move(board, depth: int, max_candidates: int, radius: int):
     size = len(board)
@@ -55,6 +67,14 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
         c = size // 2
         return c, c
     candidates = ordered_moves(board, WHITE, max_candidates=max_candidates, radius=radius)
+    # case1: white win
+    for x, y in candidates:
+        if is_win_after_move(board, x, y, WHITE):
+            return x, y
+    # case2: black win
+    for x, y in candidates:
+        if is_win_after_move(board, x, y, BLACK):
+            return x, y
     
 
 
