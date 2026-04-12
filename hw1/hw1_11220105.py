@@ -39,9 +39,21 @@ def read_board(stream, size):
         raise ValueError("expected END_BOARD")
 
     return board
-# >0: white > black
-# <0: black > white
+
 def evaluateScore(board, x: int, y: int) -> int:
+    '''
+    score = Attack + Defense - Risk + Urgency
+
+    goal: to calculate the highest scores among many candidates
+
+    Attack: (判斷是否有建立self的招術)
+
+    Defense:(判斷是否有block opponent的招術)
+
+    Risk: (下這一步的風險)
+
+    Urgency: (現在不做會不會來不及)
+    '''
     pass
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
     size = len(board)
