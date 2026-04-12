@@ -51,7 +51,6 @@ def ordered_moves(board, player: int, max_candidates: int, radius: int):
 
 def choose_move(board, depth: int, max_candidates: int, radius: int):
     size = len(board)
-
     if is_empty_board(board):
         c = size // 2
         return c, c
