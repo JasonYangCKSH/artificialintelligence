@@ -1,7 +1,11 @@
 
 import sys
 import time
-
+from enum import IntEnum
+class ThreatCondition(IntEnum):
+    OPENFOUR = 100000
+    CLOSEDFOUR = 10000
+    OPENTHREE = 1000
 
 def read_board(stream, size):
     line = stream.readline().strip()
@@ -46,6 +50,8 @@ def main():
             my_role = parts[2]
 
         elif parts[0] == "TURN":
+            if board_size is None or my_role is None:
+                raise RuntimeError("engine not initialized by START")
             board = read_board(sys.stdin, board_size)
             x, y = choose_move(board)
             print(f"MOVE {x} {y}", flush=True)
