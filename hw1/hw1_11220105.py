@@ -39,7 +39,8 @@ def read_board(stream, size):
         raise ValueError("expected END_BOARD")
 
     return board
-
+def forbiddenTrapScore()->int:
+    pass
 def evaluateScore(board, x: int, y: int) -> int:
     '''
     score = Attack + Defense - Risk + Urgency
@@ -54,10 +55,12 @@ def evaluateScore(board, x: int, y: int) -> int:
 
     Urgency: (現在不做會不會來不及)
     '''
-    # Initialize
+    #=======Initialize=======
     attack = 0
     defense = 0
-
+    forbidden_trap = 0
+    #========================
+    
     # ATTACK
     board[y][x] = WHITE
     for dx, dy in DIRECTIONS:
@@ -67,11 +70,14 @@ def evaluateScore(board, x: int, y: int) -> int:
         if length == 2: attack += 500
     board[y][x] = EMPTY
     
-    
     # DEFENSE
     defense  = count_black_four_directions(board, x, y) * 30_000
     defense += count_black_open_three_directions(board, x, y) * 5_000
     
+    # FORBIDDEN_TRAP
+    forbidden_trap = forbiddenTrapScore()
+    return attack + defense + forbidden_trap
+
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
     size = len(board)
     opp = opponent(player)
@@ -97,6 +103,7 @@ def ordered_moves(board, player: int, max_candidates: int, radius: int):
     for x, y in candidates:
         score = evaluateScore(board, x, y)
         scores.append((score, x, y))
+    
 
 
 def choose_move(board, depth: int, max_candidates: int, radius: int):
