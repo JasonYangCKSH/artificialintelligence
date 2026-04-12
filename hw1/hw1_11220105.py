@@ -41,7 +41,7 @@ def read_board(stream, size):
     return board
 # >0: white > black
 # <0: black > white
-def evaluate(board, player: int):
+def evaluateScore(board, x: int, y: int) -> int:
     pass
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
     size = len(board)
@@ -50,6 +50,7 @@ def ordered_moves(board, player: int, max_candidates: int, radius: int):
     for y in range(size):
         for x in range(size):
             if board[y][x] != EMPTY:
+                # radius == 2 (default)
                 for dy in range(-radius, radius + 1):
                     for dx in range(-radius, radius + 1):
                         if dx == 0 and dy == 0:
@@ -60,6 +61,14 @@ def ordered_moves(board, player: int, max_candidates: int, radius: int):
                         if board[ny][nx] != EMPTY:
                             continue
                         candidates.add((nx, ny))
+    # candidates finished
+    # todo:check member in candidates
+    scores = []
+    candidates = list(candidates)
+    for x, y in candidates:
+        score = evaluateScore(board, x, y)
+        scores.append((score, x, y))
+
 
 def choose_move(board, depth: int, max_candidates: int, radius: int):
     size = len(board)
