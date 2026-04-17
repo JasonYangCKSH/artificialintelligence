@@ -310,7 +310,7 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
         c = size // 2
         return c, c
     
-    # Get ranked candidates (fast evaluation only)
+    # Get ranked candidates 
     candidates = ordered_moves(board, WHITE, lookahead=depth, max_candidates=max_candidates, radius=radius)
     
     if not candidates:
