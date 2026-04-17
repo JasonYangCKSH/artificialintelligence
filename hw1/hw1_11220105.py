@@ -39,7 +39,16 @@ def read_board(stream, size):
         raise ValueError("expected END_BOARD")
 
     return board
-def forbiddenTrapScore()->int:
+def forbiddenTrapScore(board, x: int, y: int, lookahead_depth = 2)->int:
+    board[y][x] = WHITE
+    // step1: Layer0, 當前forbiddenTrap temptation score
+
+    // step2: Layer1, lookahead
+
+    
+    
+    board[y][x] = EMPTY
+    return layer0_score + layer1_score * 0.5
     pass
 def evaluateScore(board, x: int, y: int) -> int:
     '''
@@ -51,9 +60,7 @@ def evaluateScore(board, x: int, y: int) -> int:
 
     Defense:(判斷是否有block opponent的招術)
 
-    Risk: (下這一步的風險)
-
-    Urgency: (現在不做會不會來不及)
+    Forbidden_Trap
     '''
     #=======Initialize=======
     attack = 0
@@ -71,11 +78,11 @@ def evaluateScore(board, x: int, y: int) -> int:
     board[y][x] = EMPTY
     
     # DEFENSE
-    defense  = count_black_four_directions(board, x, y) * 30_000
-    defense += count_black_open_three_directions(board, x, y) * 5_000
+    defense  = count_black_four_directions(board, x, y) * 35_000
+    defense += count_black_open_three_directions(board, x, y) * 7_000
     
     # FORBIDDEN_TRAP
-    forbidden_trap = forbiddenTrapScore()
+    forbidden_trap = forbiddenTrapScore(board, x, y)
     return attack + defense + forbidden_trap
 
 def ordered_moves(board, player: int, max_candidates: int, radius: int):
@@ -103,7 +110,10 @@ def ordered_moves(board, player: int, max_candidates: int, radius: int):
     for x, y in candidates:
         score = evaluateScore(board, x, y)
         scores.append((score, x, y))
-    
+    # -pick the best candidate among condidates-
+
+
+    # ------------------------------------------
 
 
 def choose_move(board, depth: int, max_candidates: int, radius: int):
