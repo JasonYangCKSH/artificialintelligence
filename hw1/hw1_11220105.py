@@ -33,7 +33,7 @@ def read_board(stream, size):
     return board
 
 def ordered_move(board, player: int, lookahead: int, max_candidates: int, radius: int)->list:
-    
+
     pass
 def choose_move(board):
     
@@ -45,9 +45,9 @@ def choose_move(board):
     
     # Get Ranked Candidate
     candidates = []
-    candidate = ordered_move()
+    candidate = ordered_move(board=board, player=WHITE, lookahead=ARGS.depth, max_candidates=ARGS.max_candidates, radius=ARGS.neighbor_radius)
     
-    
+    pass
 
   
 
@@ -68,8 +68,7 @@ def main():
 
         elif parts[0] == "TURN":
             board = read_board(sys.stdin, board_size)
-            x, y = choose_move(board, depth=ARGS.depth, max_candidates=ARGS.max_candidates,
-                                      radius=ARGS.neighbor_radius)
+            x, y = choose_move(board)
             print(f"MOVE {x} {y}", flush=True)
 
         elif parts[0] == "END":
