@@ -346,6 +346,7 @@ def main():
 
             current = opponent(current)
             #time.sleep(1)
+            input('Press enter to continue')
     finally:
         print_match_stats(timing_stats, move_sequence, side_move_counts, white_result)
         for proc in [black, white]:
