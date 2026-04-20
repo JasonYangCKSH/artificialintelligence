@@ -317,27 +317,17 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
         # Fallback: return center if no candidates
         c = size // 2
         return c, c
-        
-    # Case 1: WHITE can win immediately - ALWAYS TAKE IT
-    for score, x, y in candidates:
-        if is_win_after_move(board, x, y, WHITE):
-            return x, y
-    
     # Case 2: BLACK would win next turn - MUST BLOCK
     for y in range(size):
         for x in range(size):
             if board[y][x] == EMPTY and is_win_after_move(board, x, y, BLACK):
                 return x, y
-    
-    # Case 3: WHITE can get an open four (winning threat)
+    # Case 1: WHITE can win immediately - ALWAYS TAKE IT
     for score, x, y in candidates:
-        board[y][x] = WHITE
-        for dx, dy in DIRECTIONS:
-            if is_open_four_in_direction(board, x, y, WHITE, dx, dy):
-                board[y][x] = EMPTY
-                return x, y
-        board[y][x] = EMPTY
+        if is_win_after_move(board, x, y, WHITE):
+            return x, y
     
+
     # Case 4: BLACK can form open four - MUST BLOCK
     for y in range(size):
         for x in range(size):
@@ -352,6 +342,16 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
                 
                 if black_open_four:
                     return x, y
+    # Case 3: WHITE can get an open four (winning threat)
+    for score, x, y in candidates:
+        board[y][x] = WHITE
+        for dx, dy in DIRECTIONS:
+            if is_open_four_in_direction(board, x, y, WHITE, dx, dy):
+                board[y][x] = EMPTY
+                return x, y
+        board[y][x] = EMPTY
+    
+
 
 
     # Case last: Return best ranked move (from lightweight evaluation)

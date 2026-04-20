@@ -10,8 +10,8 @@ WIN_SCORE = 100_000_000
 INF = 10**18
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=12, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=2, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=8, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -183,25 +183,15 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
         # Fallback: return center if no candidates
         c = size // 2
         return c, c
-    # Case 1: WHITE can win immediately - ALWAYS TAKE IT
-    for score, x, y in candidates:
-        if is_win_after_move(board, x, y, WHITE):
-            return x, y
-    
     # Case 2: BLACK would win next turn - MUST BLOCK
     for y in range(size):
         for x in range(size):
             if board[y][x] == EMPTY and is_win_after_move(board, x, y, BLACK):
                 return x, y
-    
-    # Case 3: WHITE can get an open four (winning threat)
+    # Case 1: WHITE can win immediately - ALWAYS TAKE IT
     for score, x, y in candidates:
-        board[y][x] = WHITE
-        for dx, dy in DIRECTIONS:
-            if is_open_four_in_direction(board, x, y, WHITE, dx, dy):
-                board[y][x] = EMPTY
-                return x, y
-        board[y][x] = EMPTY
+        if is_win_after_move(board, x, y, WHITE):
+            return x, y
     
     # Case 4: BLACK can form open four - MUST BLOCK
     for y in range(size):
@@ -217,6 +207,17 @@ def choose_move(board, depth: int, max_candidates: int, radius: int):
                 
                 if black_open_four:
                     return x, y
+
+    
+    # Case 3: WHITE can get an open four (winning threat)
+    for score, x, y in candidates:
+        board[y][x] = WHITE
+        for dx, dy in DIRECTIONS:
+            if is_open_four_in_direction(board, x, y, WHITE, dx, dy):
+                board[y][x] = EMPTY
+                return x, y
+        board[y][x] = EMPTY
+
 
 
     # Case last: Return best ranked move (from lightweight evaluation)

@@ -345,7 +345,7 @@ def main():
                 break
 
             current = opponent(current)
-            #time.sleep(1)
+            time.sleep(1)
     finally:
         print_match_stats(timing_stats, move_sequence, side_move_counts, white_result)
         for proc in [black, white]:
