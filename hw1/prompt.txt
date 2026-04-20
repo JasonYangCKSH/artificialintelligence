@@ -1,57 +1,154 @@
-我正在實作一個 Gomoku AI(白方)，請幫我設計並實作一個高品質的 decision engine。
+我正在實作一個 Gomoku AI（白方），提供 hw1_11220105.py（主程式框架）
+與 common.py（輔助函式庫），請基於現有架構實作hw1_11220105.py。
 
-白方致勝策略：
-1.「先守」後攻為優先，別幻想自己是進攻方：不讓黑方形成「活三 → 活四 → 五連」的進攻鏈，故防守優先權 > 自己發展。
-2.逼對手(黑方)回防，讓自己(白方)取得「先手」：白方做出"活三"，黑方必須防;白方趁機找到另一條攻略線。
-3.白方應該避免「分散下子」(會被黑方各個擊破)，優先靠近已有棋子（距離 ≤ 2），建立「局部戰場」的概念。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【前置重要說明】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-威脅等級：
-1.黑方五連(黑方贏)
-2.黑方open_four(黑方必勝，白方必敗)
-3.黑方open_three(若白方不防，則白方必敗)
-4.黑方closed_four(若白方不防，則白方必敗)
-5.黑方closed_three
-6.黑方open_two
-7.黑方closed_two
-8.黑方other
+▌座標慣例（必讀，勿搞錯）
+  - 棋盤存取格式為 board[y][x]，y 為列（row），x 為行（column）
+  - common.py 所有函式均遵循此慣例，自行撰寫時務必一致
 
+▌Black vs White 規則差異
+  - Black（黑方）有禁手限制：長連（≥6）、雙四、雙三均為非法棋步
+  - White（白方）無禁手：五連或長連（≥5）均算贏
+  - is_win_after_move、is_legal_move、is_black_forbidden_after_move
+    已在 common.py 實作完畢，直接呼叫即可
 
-需求如下：
+▌可直接使用的 common.py 函式（請善用，勿重複實作）
+  - is_win_after_move(board, x, y, color)     → 判斷落子後是否獲勝
+  - is_legal_move(board, x, y, color)         → 含禁手過濾的合法性判斷
+  - line_total(board, x, y, dx, dy, color)    → 某方向連子總數
+  - count_dir(board, x, y, dx, dy, color)     → 單方向連子數
+  - occupied_neighbors(board, x, y, radius)   → 鄰近佔位數（用於 move gen）
+  - is_empty_board(board)                      → 是否為空盤
+  - opponent(color)                            → 取對手顏色
 
-1. 搜尋演算法 (def minimax)
-- 使用 minimax with alpha-beta pruning
-- 採 DFS 搜尋
-- 搜尋深度至少 4 層（可調整），同時也得考慮隨著深度增加而造成的時間開銷
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【白方致勝策略（設計方向）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-2. Move generation
-- 僅考慮已有棋子周圍 2 格內的位置（避免 branching explosion）
-- 請實作 "def ordered_move"（根據 heuristic 排序）
+1. 先守後攻：不讓黑方形成「活三 → 活四 → 五連」進攻鏈
+2. 爭取先手：白方形成活三迫使黑方回防，趁機開闢第二條攻略線
+3. 集中落子：優先靠近已有棋子（距離 ≤ 2），建立局部戰場，避免分散
+4. 利用禁手：主動製造讓黑方踩雙三、雙四禁手的佈局（進階）
 
-3. Evaluation function（非常重要）
-請設計一個 heuristic 評估函數，需包含：
-- 連續棋子數（2,3,4,5）
-- 是否為 open（兩端開）或 closed
-- 分數建議如下（數值可調）：
-    - five: +WIN_SCORE (or = WIN_SCORE)
-    - open four: +100000
-    - closed four: +10000
-    - open three: +1000
-    - closed three: +100
-    - open two: +10
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【威脅等級定義（供 evaluation 參考）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-4. 請避免以下問題
-- 重複計算同一局面（可考慮 transposition table）
-- 無排序導致 alpha-beta 無效
-- 全盤搜尋導致效能過差
+（數字越小 = 越緊急，白方必須優先回應）
+1. 黑方五連（黑方直接贏）
+2. 黑方 open_four（黑方必勝，無法單點防守）
+3. 黑方 closed_four（白方若不防則必敗）
+4. 黑方 open_three（若不防，下回合形成 open_four）
+5. 黑方 closed_three
+6. 黑方 open_two
+7. 白方各類進攻型態（mirror of above）
 
-5. 程式設計要求
-- 使用 Python，基於現有框下及提供的現成函式進行編輯
-- 模組化（evaluation / search / move generation 分開）
-- 每個函數請附註解
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【需求規格】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-6. 額外要求
-- 解釋你如何設計 evaluation function
-- 解釋如何提升 pruning 效率
-- 提供一個簡單測試案例
+1. Evaluation Function（def evaluate_board）
+─────────────────────────────────────────
+  評估函數需回傳「白方分數 − 黑方分數」的相對值（White 視角為正）。
 
-請先提供「設計說明」，再提供完整程式碼。
+  ◆ Pattern 掃描方式：
+    - 掃描時需考慮「含空格的型樣」，例如 O_OO（跳連），而非只計連續子數
+    - 每條掃描線（橫/直/斜×2）分別判斷型樣
+    - 判斷 open / closed 時需確認兩端是否為 EMPTY（非越界、非對方子）
+
+  ◆ 分數建議（數值可調整）：
+    White / Black 各自計算，最終回傳 white_score - black_score
+
+    五連（含長連）: WIN_SCORE      （= 100_000_000）
+    open_four     : +100_000
+    closed_four   : +10_000
+    open_three    : +1_000
+    closed_three  : +100
+    open_two      : +10
+    closed_two    : +1
+
+  ◆ Black 分數建議給予額外懲罰乘數（例如 ×1.1 至 ×1.5）
+    以體現「防守優先」的策略偏好
+
+  ◆ 若落子後已觸發 is_win_after_move，直接回傳 ±WIN_SCORE，不需繼續掃描
+
+2. Move Generation（def ordered_move）
+─────────────────────────────────────────
+  ◆ 候選格產生：
+    - 僅考慮已有棋子周圍 radius 格（預設 2）內的空格
+    - 所有候選格須通過 is_legal_move(board, x, y, player) 過濾
+
+  ◆ 排序啟發（heuristic ordering）：
+    優先依序考慮：
+    (a) 落子後 White 直接獲勝
+    (b) 落子後阻止 Black 直接獲勝
+    (c) 落子後形成 White open_four 或 closed_four
+    (d) 落子後阻止 Black open_four
+    (e) 落子後形成 White open_three
+    (f) evaluate_board 的局部增量分（近似，加速排序）
+
+  ◆ 限制候選數上限為 max_candidates（預設 12），取前 N 名即可
+
+3. Minimax with Alpha-Beta Pruning（def minimax）
+─────────────────────────────────────────────────
+  ◆ 簽章建議：
+    minimax(board, depth, alpha, beta, is_max_layer, last_x, last_y)
+    → 回傳 (score, best_x, best_y)
+
+  ◆ 終止條件：
+    - is_win_after_move(board, last_x, last_y, opponent(current_player))
+      → 上一手已獲勝，回傳 ±WIN_SCORE（需調整符號方向）
+    - depth == 0 → 回傳 evaluate_board(board)
+    - board_full(board) → 回傳 0
+
+  ◆ 搜尋深度：
+    - 預設 depth = 4（ARGS.depth 已支援命令列調整）
+    - 若 depth ≥ 5，建議搭配時間限制（每步 < 5 秒）或 iterative deepening
+
+  ◆ Alpha-Beta 效率提升：
+    - Move ordering（見上方 ordered_move）是提升 pruning 效率的最重要手段
+    - 加入 Transposition Table（見下方）
+
+4. Transposition Table
+─────────────────────────────────────────
+  ◆ 以 tuple(tuple(row) for row in board) 作為 key（或使用 Zobrist hashing）
+  ◆ 每筆紀錄存：{ 'score': ..., 'depth': ..., 'flag': 'exact'|'lower'|'upper' }
+  ◆ 在 minimax 函式最前方查表，最後方存表
+  ◆ 注意：trans table 應在每次 choose_move 呼叫時清空或限制大小，
+    避免跨回合的 stale entry 導致錯誤
+
+5. choose_move 整合
+─────────────────────────────────────────
+  ◆ 空盤直接落中央（已實作，保留）
+  ◆ 在呼叫 minimax 前，先做 immediate check：
+    (a) 若存在 White 可直接獲勝的棋步，立即回傳（不需搜尋）
+    (b) 若存在 Black 即將獲勝（open_four 或 five）的棋步，優先防守
+  ◆ minimax 回傳 (score, x, y)，choose_move 取出 x, y 回傳
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【程式設計要求】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- 語言：Python，基於 hw1_11220105.py 現有框架，不更動 main() 與 read_board()
+- 函式模組化：evaluation / search / move generation 各自獨立函式
+- 每個函式需附中文或英文註解說明其用途與參數
+- 全域變數：WIN_SCORE、DIRECTIONS、ARGS 維持現有定義
+- 不要刪除或修改 parse_args()、read_board()、main() 等已存在結構
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【額外要求（請一併提供）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A. 設計說明（實作前先輸出）
+   1. Evaluation function 的 pattern 掃描邏輯說明
+   2. 如何透過 move ordering 提升 alpha-beta pruning 效率
+   3. Transposition table 的 flag 機制（exact / lower / upper）說明
+
+B. 測試案例
+   提供至少一個具體盤面（用 board 陣列表示），
+   說明 AI 應在該盤面中選擇哪一步及原因
+
+請先輸出「設計說明」，再輸出「完整程式碼」。
