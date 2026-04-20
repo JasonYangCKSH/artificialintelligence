@@ -106,7 +106,7 @@
 
   ◆ 搜尋深度：
     - 預設 depth = 4（ARGS.depth 已支援命令列調整）
-    - 若 depth ≥ 5，建議搭配時間限制（每步 < 5 秒）或 iterative deepening
+    - 若 depth ≥ 5，建議搭配時間限制（每步 < 5 秒，若可以，盡量壓制在< 4 秒）或 iterative deepening
 
   ◆ Alpha-Beta 效率提升：
     - Move ordering（見上方 ordered_move）是提升 pruning 效率的最重要手段
@@ -132,11 +132,11 @@
 【程式設計要求】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- 語言：Python，基於 hw1_11220105.py 現有框架，不更動 main() 與 read_board()
+- 語言：Python，基於 hw1_11220105.py 現有框架，不更動 main() 、choose_move()與 read_board()
 - 函式模組化：evaluation / search / move generation 各自獨立函式
 - 每個函式需附中文或英文註解說明其用途與參數
 - 全域變數：WIN_SCORE、DIRECTIONS、ARGS 維持現有定義
-- 不要刪除或修改 parse_args()、read_board()、main() 等已存在結構
+- 不要刪除或修改 parse_args()、read_board()、main() 、choose_move()等已存在結構
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【額外要求（請一併提供）】

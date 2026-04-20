@@ -2,12 +2,7 @@ import sys
 import time
 import argparse
 from common import *
-'''
-length == 5: score+=100_000_000
-length == 4: score+=5_000_000
-length == 3: score+=200_000
-length == 2: score+=10_000
-'''
+
 DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
 WIN_SCORE = 100_000_000
 INF = 10**18
