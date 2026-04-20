@@ -1,0 +1,57 @@
+我正在實作一個 Gomoku AI(白方)，請幫我設計並實作一個高品質的 decision engine。
+
+白方致勝策略：
+1.「先守」後攻為優先，別幻想自己是進攻方：不讓黑方形成「活三 → 活四 → 五連」的進攻鏈，故防守優先權 > 自己發展。
+2.逼對手(黑方)回防，讓自己(白方)取得「先手」：白方做出"活三"，黑方必須防;白方趁機找到另一條攻略線。
+3.白方應該避免「分散下子」(會被黑方各個擊破)，優先靠近已有棋子（距離 ≤ 2），建立「局部戰場」的概念。
+
+威脅等級：
+1.黑方五連(黑方贏)
+2.黑方open_four(黑方必勝，白方必敗)
+3.黑方open_three(若白方不防，則白方必敗)
+4.黑方closed_four(若白方不防，則白方必敗)
+5.黑方closed_three
+6.黑方open_two
+7.黑方closed_two
+8.黑方other
+
+
+需求如下：
+
+1. 搜尋演算法 (def minimax)
+- 使用 minimax with alpha-beta pruning
+- 採 DFS 搜尋
+- 搜尋深度至少 4 層（可調整），同時也得考慮隨著深度增加而造成的時間開銷
+
+2. Move generation
+- 僅考慮已有棋子周圍 2 格內的位置（避免 branching explosion）
+- 請實作 "def ordered_move"（根據 heuristic 排序）
+
+3. Evaluation function（非常重要）
+請設計一個 heuristic 評估函數，需包含：
+- 連續棋子數（2,3,4,5）
+- 是否為 open（兩端開）或 closed
+- 分數建議如下（數值可調）：
+    - five: +WIN_SCORE (or = WIN_SCORE)
+    - open four: +100000
+    - closed four: +10000
+    - open three: +1000
+    - closed three: +100
+    - open two: +10
+
+4. 請避免以下問題
+- 重複計算同一局面（可考慮 transposition table）
+- 無排序導致 alpha-beta 無效
+- 全盤搜尋導致效能過差
+
+5. 程式設計要求
+- 使用 Python，基於現有框下及提供的現成函式進行編輯
+- 模組化（evaluation / search / move generation 分開）
+- 每個函數請附註解
+
+6. 額外要求
+- 解釋你如何設計 evaluation function
+- 解釋如何提升 pruning 效率
+- 提供一個簡單測試案例
+
+請先提供「設計說明」，再提供完整程式碼。
