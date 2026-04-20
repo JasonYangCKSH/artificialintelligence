@@ -9,8 +9,8 @@ INF = 10**18
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=2, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=12, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=3, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=6, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -321,7 +321,8 @@ def move_priority(board, x: int, y: int, player: int) -> int:
 
     # (f) 局部靜態評分增量
     board[y][x] = player
-    local = evaluate_board(board)
+    local = evaluate_board(board) #整個盤面誰佔優勢、優勢多少
+    #local=occupied_neighbors(board, x, y, 2) * 10
     board[y][x] = EMPTY
     priority += local
 
@@ -381,24 +382,25 @@ def minimax(board, depth: int, alpha: int, beta: int,
     回傳:
         (score, best_x, best_y)
     """
+    # Step1: Base Case ──────────────────────────────
     # 判斷上一手落子者
     last_player = BLACK if is_max_layer else WHITE  # 剛落完子的是對手
-
-    # ── 終止條件 ──────────────────────────────
     # 上一手是否已獲勝
-    if last_x >= 0 and is_win_after_move(board, last_x, last_y, last_player):
+    if  last_x >= 0 and is_win_after_move(board, last_x, last_y, last_player):
         if last_player == WHITE:
             return WIN_SCORE + depth, -1, -1   # 越快贏分越高
         else:
             return -WIN_SCORE - depth, -1, -1
-
+    
     if board_full(board):
-        return 0, -1, -1
+        return 0, -1, -1  # DRAW: return score = 0
 
     if depth == 0:
-        return evaluate_board(board), -1, -1
+        return evaluate_board(board), -1, -1 #  到達搜尋底部，靜態評估
+    # ───────────────────────────────────────────────
 
-    # ── Transposition Table 查表 ──────────────
+
+    # Step2: Transposition Table 查表 ──────────────
     key = board_key(board)
     if key in trans_table:
         entry = trans_table[key]
@@ -411,18 +413,15 @@ def minimax(board, depth: int, alpha: int, beta: int,
                 return s, entry['x'], entry['y']
             elif flag == 'upper' and s <= alpha:
                 return s, entry['x'], entry['y']
+    # ──────────────────────────────────────────
 
-    # ── 決定當前落子方 ─────────────────────────
+
+
+    # Step3: ── 決定當前落子方 ─────────────────────────
     current_player = WHITE if is_max_layer else BLACK
 
     # ── 產生候選棋步 ──────────────────────────
-    moves = ordered_move(
-        board,
-        player=current_player,
-        lookahead=depth,
-        max_candidates=ARGS.max_candidates,
-        radius=ARGS.neighbor_radius,
-    )
+    moves = ordered_move(board,player=current_player,lookahead=depth,max_candidates=ARGS.max_candidates,radius=ARGS.neighbor_radius)
 
     if not moves:
         return evaluate_board(board), -1, -1
@@ -529,18 +528,11 @@ def choose_move(board):
             return bx, by
 
     # ── Minimax 搜尋 ──────────────────────────
-    _, x, y = minimax(
-        board=board,
-        depth=ARGS.depth,
-        alpha=-INF,
-        beta=INF,
-        is_max_layer=True,
-        last_x=-1,
-        last_y=-1,
-    )
+    _, x, y = minimax(board=board,depth=ARGS.depth,alpha=-INF,beta=INF,is_max_layer=True,last_x=-1,last_y=-1)
 
     # 若 minimax 未能回傳有效棋步，取第一個合法棋步
     if x < 0 or y < 0 or not is_legal_move(board, x, y, WHITE):
+        
         fallback = ordered_move(board, WHITE, ARGS.depth,
                                 ARGS.max_candidates, ARGS.neighbor_radius)
         if fallback:
