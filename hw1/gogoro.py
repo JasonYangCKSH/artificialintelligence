@@ -9,8 +9,8 @@ INF = 10**18
 TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=4, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=4, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=5, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -621,6 +621,8 @@ def choose_move(board):
         bx, by = block_move
         if is_legal_move(board, bx, by, WHITE):
             return bx, by
+
+
 
     # ── Minimax 搜尋 ──────────────────────────
     _, x, y = minimax(board=board,depth=ARGS.depth,alpha=-INF,beta=INF,is_max_layer=True,last_x=-1,last_y=-1)
