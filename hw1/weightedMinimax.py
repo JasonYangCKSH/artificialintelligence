@@ -9,8 +9,8 @@ WIN_SCORE = 100_000_000
 INF = 10**18
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=2, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=12, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=3, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=1, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=3, help="generate moves near existing stones")
     return parser.parse_args()
 

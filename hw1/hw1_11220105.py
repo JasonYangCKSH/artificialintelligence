@@ -6,11 +6,11 @@ from common import *
 DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
 WIN_SCORE = 100_000_000
 INF = 10**18
-
+TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=4, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=4, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=5, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -32,6 +32,7 @@ def board_key(board):
 # ──────────────────────────────────────────────
 
 # 各威脅型樣的基礎分數
+
 SCORE_TABLE = {
     5: WIN_SCORE,       # 五連（或長連）
     'open_four':   100_000,
@@ -282,17 +283,111 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     用於 ordered_move 的排序鍵值。
     """
     opp = opponent(player)
-
-    # 暫時落子
-    board[y][x] = player
-
     priority = 0
+    if not is_legal_move(board, x, y, player):
+        return -1
 
+    # ------
+    # (1)player
+    # ------
+    board[y][x] = player
+    # part1: 直接獲勝
+    if is_win_after_move(board, x, y, player):
+        board[y][x] = EMPTY
+        return 10_000_000
+    # part2: calculate player's attack
+    my_threes = 0
+    my_fours = 0
+    for dx, dy in DIRECTIONS:
+        if has_four(board, x, y, player):
+            my_fours += 1
+        if has_open_three(board, x, y, player):
+            my_threes += 1
+    # a: multiple threat
+    if my_fours >= 2:
+        priority += 900_000
+    elif my_fours >= 1 and my_threes >= 1:
+        priority += 700_000
+    elif my_threes >= 2:
+        priority += 400_000
+    # b: single threat
+    if my_fours >= 1:
+        priority += 200_000
+    if my_threes >= 1:
+        priority += 50_000 
+    board[y][x] = EMPTY
+    # ------
+    # (2)opponent
+    # ------
+    board[y][x] = opp
+    # part1: 直接獲勝
+    if is_win_after_move(board, x, y, opp):
+        board[y][x] = EMPTY
+        return 9_000_000
+
+    opp_threes = 0
+    opp_fours = 0
+
+    for dx, dy in DIRECTIONS:
+        if has_four(board, x, y, opp):
+            opp_fours += 1
+        if has_open_three(board, x, y, opp):
+            opp_threes += 1
+    # a: multiple threat:
+    if opp_fours >= 2:              
+        priority += 850_000
+    elif opp_fours >= 1 and opp_threes >= 1:  
+        priority += 650_000
+    elif opp_threes >= 2:          
+        priority += 300_000
+
+    # b: single threat
+    if opp_fours >= 1:
+        priority += 150_000
+    if opp_threes >= 1:
+        priority += 40_000
+
+    board[y][x] = EMPTY
+    # ------
+    # (3)black forbidden move
+    # ------
+    if player == WHITE:
+        board[y][x] = player
+
+        # 掃附近點（避免爆炸）
+        size = len(board)
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                nx, ny = x + dx, y + dy
+                if not in_bounds(nx, ny, size):
+                    continue
+                if board[ny][nx] != EMPTY:
+                    continue
+
+                board[ny][nx] = BLACK
+                if is_black_forbidden_after_move(board, nx, ny):
+                    priority += 30_000
+                board[ny][nx] = EMPTY
+
+        board[y][x] = EMPTY
+    # ------
+    # (4) 輕量局部評估
+    # ------
+    local_score = 0
+    for dx, dy in DIRECTIONS:
+        local_score += line_total(board, x, y, dx, dy, player) * 10
+
+    priority += local_score
+    '''
     # (a) 白方直接獲勝
     if is_win_after_move(board, x, y, player):
         board[y][x] = EMPTY
         return 10_000_000
-
+    # (b) 防守對方五連
+    board[y][x] = opp
+    if is_win_after_move(board, x, y, opp):
+        board[y][x] = EMPTY
+        return 9_000_000  # 僅次於直接獲勝
     # (c) 白方形成 open_four 或 closed_four
     if has_four(board, x, y, player):
         priority += 500_000
@@ -303,11 +398,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
 
     board[y][x] = EMPTY
 
-    # (b) 防守對方五連
-    board[y][x] = opp
-    if is_win_after_move(board, x, y, opp):
-        board[y][x] = EMPTY
-        return 9_000_000  # 僅次於直接獲勝
+
 
     # (d) 防守對方 open_four
     if has_open_four(board, x, y, opp):
@@ -325,7 +416,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     #local=occupied_neighbors(board, x, y, 2) * 10
     board[y][x] = EMPTY
     priority += local
-
+    '''
     return priority
 
 
@@ -382,6 +473,8 @@ def minimax(board, depth: int, alpha: int, beta: int,
     回傳:
         (score, best_x, best_y)
     """
+    if time.time() - _start_time > TIME_LIMIT:
+        return evaluate_board(board), -1, -1 
     # Step1: Base Case ──────────────────────────────
     # 判斷上一手落子者
     last_player = BLACK if is_max_layer else WHITE  # 剛落完子的是對手
@@ -432,24 +525,24 @@ def minimax(board, depth: int, alpha: int, beta: int,
 
     for x, y in moves:
         board[y][x] = current_player
-
+        # ------------------------------->DFS itself <------------------------------
         score, _, _ = minimax(
             board, depth - 1, alpha, beta,
             not is_max_layer, x, y
         )
 
         board[y][x] = EMPTY
-
+        # 往上回傳
         if is_max_layer:
             if score > best_score:
                 best_score = score
                 best_x, best_y = x, y
-            alpha = max(alpha, best_score)
+            alpha = max(alpha, best_score) # parent = bigger child
         else:
             if score < best_score:
                 best_score = score
                 best_x, best_y = x, y
-            beta = min(beta, best_score)
+            beta = min(beta, best_score) # parent = smaller child
 
         if alpha >= beta:
             break  # Alpha-Beta 剪枝
@@ -504,6 +597,8 @@ def choose_move(board):
     3. 若黑方有 open_four 或即將獲勝，優先防守
     4. 否則呼叫 Minimax 搜尋
     """
+    global _start_time
+    _start_time = time.time()
     global trans_table
     trans_table = {}  # 每回合清空，避免過期快取
 
