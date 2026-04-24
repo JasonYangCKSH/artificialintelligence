@@ -284,6 +284,10 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     """
     opp = opponent(player)
     priority = 0
+    
+    '''
+    opp = opponent(player)
+    priority = 0
     if not is_legal_move(board, x, y, player):
         return -1
 
@@ -379,6 +383,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
 
     priority += local_score
     '''
+    '''
     # (a) 白方直接獲勝
     if is_win_after_move(board, x, y, player):
         board[y][x] = EMPTY
@@ -416,8 +421,9 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     #local=occupied_neighbors(board, x, y, 2) * 10
     board[y][x] = EMPTY
     priority += local
-    '''
+    
     return priority
+    '''
 
 
 def ordered_move(board, player: int, lookahead: int, max_candidates: int, radius: int) -> list:
