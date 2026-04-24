@@ -233,7 +233,7 @@ def has_winning_move(board, color: int):
                     return (x, y)
     return None
 
-
+'''
 def has_open_four(board, x: int, y: int, color: int) -> bool:
     """判斷落子 (x,y) 後 color 方是否形成 open_four。"""
     for dx, dy in DIRECTIONS:
@@ -275,7 +275,7 @@ def _white_open_three_dir(board, x: int, y: int, dx: int, dy: int) -> bool:
     left_open = in_bounds(lx, ly, size) and board[ly][lx] == EMPTY
     right_open = in_bounds(rx, ry, size) and board[ry][rx] == EMPTY
     return left_open and right_open
-
+'''
 
 def move_priority(board, x: int, y: int, player: int) -> int:
     """
@@ -284,7 +284,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     """
     opp = opponent(player)
     priority = 0
-    
+
     '''
     opp = opponent(player)
     priority = 0
