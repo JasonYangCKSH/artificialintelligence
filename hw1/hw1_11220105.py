@@ -301,19 +301,19 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
 
-    priority += open4   * 7_000_000 
-    priority += closed4 * 2_500_000   
-    priority += open3   *   280_000 
-    priority += closed3 *    65_000
-    priority += open2   *    18_000
-    priority += closed2 *     5_000
+    priority += open4   * 2_000_000
+    priority += closed4 * 500_000
+    priority += open3   * 200_000
+    priority += closed3 *  10_000
+    priority += open2   *  2_000  
+    priority += closed2 *  500
     # Threats Combination
     if open3 >= 2:
-        priority += 400_000
-    if open4 >= 2:
-        priority += 6_000_000
-    if open4 >= 1 and open3 >= 1:
         priority += 3_000_000
+    if open4 >= 2:
+        priority += 15_000_000
+    if open4 >= 1 and open3 >= 1:
+        priority += 10_000_000
     board[y][x] = EMPTY
 
     # ==================================================
@@ -327,19 +327,19 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     closed3 = count_closed_num(board, x, y, 3)
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
-    priority += open4   * 7_500_000   
-    priority += closed4 *   700_000 
-    priority += open3   *   450_000   
-    priority += closed3 *   110_000   
-    priority += open2   *    14_000
-    priority += closed2 *     4_000
+    priority += open4   * 3_000_000  
+    priority += closed4 * 800_000 
+    priority += open3   *  400_000   
+    priority += closed3 *   20_000   
+    priority += open2   *    4_000
+    priority += closed2 *    1_000
     # Threats Combination
     if open3 >= 2:
-        priority += 800_000
+        priority += 5_000_000
     if open4 >= 2:
-        priority += 100_000
+        priority += 20_000_000
     if open4 >= 1 and open3 >= 1:
-        priority += 3_500_000
+        priority += 18_000_000
     board[y][x] = EMPTY
 
   
@@ -347,18 +347,18 @@ def move_priority(board, x: int, y: int, player: int) -> int:
 
     # Position Heuristic
     neighbors = occupied_neighbors(board, x, y, radius=2)
-    priority += neighbors * 3_000
+    priority += neighbors * 100
 
     center = size // 2
     max_dist = 2 * center
     dist = abs(x - center) + abs(y - center)
-    priority += (max_dist - dist) * 1_000
+    priority += (max_dist - dist) * 50
 
     # Black Forbidden trap
     if player == WHITE:
         board[y][x] = BLACK
         if is_black_forbidden_after_move(board, x, y):
-            priority += 40_000
+            priority += 1_000_000
         board[y][x] = EMPTY
     return priority
 
