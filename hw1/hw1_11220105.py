@@ -215,12 +215,12 @@ def evaluate_board(board) -> int:
 
     return white_score - int(black_score * BLACK_PENALTY)
 
-def has_open_num(board, x: int, y: int, t: int) -> bool:
+def count_open_num(board, x: int, y: int, t: int) -> int:
     if t <= 1 or t >= 5: 
-        return False
+        return 0
     size = len(board)
     color = board[y][x]
-
+    count = 0
     for dx, dy in DIRECTIONS:
         left = count_dir(board, x, y, -dx, -dy, color)
         right = count_dir(board, x, y, dx, dy, color)
@@ -238,15 +238,15 @@ def has_open_num(board, x: int, y: int, t: int) -> bool:
         right_open = in_bounds(rx, ry, size) and board[ry][rx] == EMPTY
 
         if left_open and right_open:
-            return True
+            count+=1
 
-    return False
-def has_closed_num(board, x: int, y: int, color: int, t: int)->bool:
+    return count
+def count_closed_num(board, x: int, y: int, t: int)->int:
     if t <= 1 or t >= 5: 
-        return False
+        return 0
     size = len(board)
     color = board[y][x]
-
+    count = 0
     for dx, dy in DIRECTIONS:
         left = count_dir(board, x, y, -dx, -dy, color)
         right = count_dir(board, x, y, dx, dy, color)
@@ -264,9 +264,9 @@ def has_closed_num(board, x: int, y: int, color: int, t: int)->bool:
         right_open = in_bounds(rx, ry, size) and board[ry][rx] == EMPTY
 
         if left_open ^ right_open:
-            return True
+            count+=1
 
-    return False
+    return count
 def move_priority(board, x: int, y: int, player: int) -> int:
     """
     計算落子 (x,y) 的啟發優先級分數（越高越優先搜尋）。
@@ -294,27 +294,27 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     board[y][x] = player
 
     # open four
-    if has_open_num(board, x, y, player, 4):
+    if count_open_num(board, x, y, 4):
         priority += 1_000_000
 
     # closed four
-    if has_closed_num(board, x, y, player, 4):
+    if count_closed_num(board, x, y,  4):
         priority += 600_000
 
     # open three
-    if has_open_num(board, x, y, player, 3):
+    if count_open_num(board, x, y,  3):
         priority += 100_000
 
     # closed three
-    if has_closed_num(board, x, y, player, 3):
+    if count_closed_num(board, x, y,  3):
         priority += 60_000
 
     # open two
-    if has_open_num(board, x, y, player, 2):
+    if count_open_num(board, x, y,  2):
         priority += 10_000
 
     # closed two
-    if has_closed_num(board, x, y, player, 2):
+    if count_closed_num(board, x, y,  2):
         priority += 6_000
 
     board[y][x] = EMPTY
@@ -326,31 +326,31 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     board[y][x] = opp
 
     # open four
-    if has_open_num(board, x, y, opp, 4):
+    if count_open_num(board, x, y,  4):
         priority += 900_000
 
     # closed four
-    if has_closed_num(board, x, y, opp, 4):
+    if count_closed_num(board, x, y, 4):
         priority += 650_000
 
     # open three
-    if has_open_num(board, x, y, opp, 3):
+    if count_open_num(board, x, y,  3):
         priority += 150_000
 
     # closed three
-    if has_closed_num(board, x, y, opp, 3):
+    if count_closed_num(board, x, y,  3):
         priority += 90_000
 
     # open two
-    if has_open_num(board, x, y, opp, 2):
+    if count_open_num(board, x, y, 2):
         priority += 15_000
 
     # closed two
-    if has_closed_num(board, x, y, opp, 2):
+    if count_closed_num(board, x, y, 2):
         priority += 9_000
     board[y][x] = EMPTY
 
-
+    # todo
 
     return priority
 
