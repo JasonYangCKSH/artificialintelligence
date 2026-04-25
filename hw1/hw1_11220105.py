@@ -9,8 +9,8 @@ INF = 10**18
 TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=2, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=5, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=4, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=6, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -272,6 +272,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     計算落子 (x,y) 的啟發優先級分數（越高越優先搜尋）。
     用於 ordered_move 的排序鍵值。
     """
+    size = len(board)
     opp = opponent(player)
     priority = 0
     if not is_legal_move(board, x, y, player):
@@ -300,13 +301,19 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
 
-    priority += open4 * 1_200_000
-    priority += closed4 * 500_000
-    priority += open3 * 120_000
-    priority += closed3 * 40_000
-    priority += open2 * 12_000
-    priority += closed2 * 4_000
-
+    priority += open4   * 7_000_000 
+    priority += closed4 * 2_500_000   
+    priority += open3   *   280_000 
+    priority += closed3 *    65_000
+    priority += open2   *    18_000
+    priority += closed2 *     5_000
+    # Threats Combination
+    if open3 >= 2:
+        priority += 400_000
+    if open4 >= 2:
+        priority += 6_000_000
+    if open4 >= 1 and open3 >= 1:
+        priority += 3_000_000
     board[y][x] = EMPTY
 
     # ==================================================
@@ -320,16 +327,39 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     closed3 = count_closed_num(board, x, y, 3)
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
-    priority += open4 * 1_100_000
-    priority += closed4 * 650_000
-    priority += open3 * 180_000
-    priority += closed3 * 80_000
-    priority += open2 * 15_000
-    priority += closed2 * 6_000
+    priority += open4   * 7_500_000   
+    priority += closed4 *   700_000 
+    priority += open3   *   450_000   
+    priority += closed3 *   110_000   
+    priority += open2   *    14_000
+    priority += closed2 *     4_000
+    # Threats Combination
+    if open3 >= 2:
+        priority += 800_000
+    if open4 >= 2:
+        priority += 100_000
+    if open4 >= 1 and open3 >= 1:
+        priority += 3_500_000
     board[y][x] = EMPTY
 
-    # todo
+  
 
+
+    # Position Heuristic
+    neighbors = occupied_neighbors(board, x, y, radius=2)
+    priority += neighbors * 3_000
+
+    center = size // 2
+    max_dist = 2 * center
+    dist = abs(x - center) + abs(y - center)
+    priority += (max_dist - dist) * 1_000
+
+    # Black Forbidden trap
+    if player == WHITE:
+        board[y][x] = BLACK
+        if is_black_forbidden_after_move(board, x, y):
+            priority += 40_000
+        board[y][x] = EMPTY
     return priority
 
 
