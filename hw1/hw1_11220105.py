@@ -26,44 +26,7 @@ def board_key(board):
     """將棋盤轉為可雜湊的 tuple，作為 transposition table 的 key。"""
     return tuple(tuple(row) for row in board)
 
-# ----------------------------------------------
-# Helper function
-# ----------------------------------------------
-'''
-def is_open_three_in_direction(board, x: int, y: int, color: int, dx: int, dy: int) -> bool:
-    size = len(board)
-    left = count_dir(board, x, y, -dx, -dy, color)
-    right = count_dir(board, x, y, dx, dy, color)
-    total = 1 + left + right
-    if total != 3:
-        return False
 
-    lx = x - (left + 1) * dx
-    ly = y - (left + 1) * dy
-    rx = x + (right + 1) * dx
-    ry = y + (right + 1) * dy
-
-    left_open = in_bounds(lx, ly, size) and board[ly][lx] == EMPTY
-    right_open = in_bounds(rx, ry, size) and board[ry][rx] == EMPTY
-    return left_open and right_open
-def has_open_four(board, x: int, y: int, color: int) -> bool:
-   
-    for dx, dy in DIRECTIONS:
-        if is_open_four_in_direction(board, x, y, color, dx, dy):
-            return True
-    return False
-def has_four(board, x: int, y: int, color: int) -> bool:
-    for dx, dy in DIRECTIONS:
-        if line_total(board, x, y, dx, dy, color) >= 4:
-            return True
-    return False
-def has_open_three(board, x: int, y: int, color: int) -> bool:
-    for dx, dy in DIRECTIONS:
-        if has_open_three_in_direction_for_black(board, x, y, dx, dy) if color == BLACK \
-                else is_open_three_in_direction(board, x, y, color, dx, dy):
-            return True
-    return False
-'''
 # ──────────────────────────────────────────────
 # Evaluation Function
 # ──────────────────────────────────────────────
@@ -384,7 +347,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     board[y][x] = EMPTY
 
 
-    
+
     return priority
 
 
