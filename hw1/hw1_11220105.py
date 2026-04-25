@@ -216,6 +216,8 @@ def evaluate_board(board) -> int:
     return white_score - int(black_score * BLACK_PENALTY)
 
 def has_open_num(board, x: int, y: int, t: int) -> bool:
+    if t <= 1 or t >= 5: 
+        return False
     size = len(board)
     color = board[y][x]
 
@@ -240,6 +242,8 @@ def has_open_num(board, x: int, y: int, t: int) -> bool:
 
     return False
 def has_closed_num(board, x: int, y: int, color: int, t: int)->bool:
+    if t <= 1 or t >= 5: 
+        return False
     size = len(board)
     color = board[y][x]
 
