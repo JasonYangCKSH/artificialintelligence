@@ -293,29 +293,19 @@ def move_priority(board, x: int, y: int, player: int) -> int:
 
     board[y][x] = player
 
-    # open four
-    if count_open_num(board, x, y, 4):
-        priority += 1_000_000
+    open4 = count_open_num(board, x, y, 4)
+    closed4 = count_closed_num(board, x, y, 4)
+    open3 = count_open_num(board, x, y, 3)
+    closed3 = count_closed_num(board, x, y, 3)
+    open2 = count_open_num(board, x, y, 2)
+    closed2 = count_closed_num(board, x, y, 2)
 
-    # closed four
-    if count_closed_num(board, x, y,  4):
-        priority += 600_000
-
-    # open three
-    if count_open_num(board, x, y,  3):
-        priority += 100_000
-
-    # closed three
-    if count_closed_num(board, x, y,  3):
-        priority += 60_000
-
-    # open two
-    if count_open_num(board, x, y,  2):
-        priority += 10_000
-
-    # closed two
-    if count_closed_num(board, x, y,  2):
-        priority += 6_000
+    priority += open4 * 1_200_000
+    priority += closed4 * 500_000
+    priority += open3 * 120_000
+    priority += closed3 * 40_000
+    priority += open2 * 12_000
+    priority += closed2 * 4_000
 
     board[y][x] = EMPTY
 
@@ -324,30 +314,18 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     # ==================================================
 
     board[y][x] = opp
-
-    # open four
-    if count_open_num(board, x, y,  4):
-        priority += 900_000
-
-    # closed four
-    if count_closed_num(board, x, y, 4):
-        priority += 650_000
-
-    # open three
-    if count_open_num(board, x, y,  3):
-        priority += 150_000
-
-    # closed three
-    if count_closed_num(board, x, y,  3):
-        priority += 90_000
-
-    # open two
-    if count_open_num(board, x, y, 2):
-        priority += 15_000
-
-    # closed two
-    if count_closed_num(board, x, y, 2):
-        priority += 9_000
+    open4 = count_open_num(board, x, y, 4)
+    closed4 = count_closed_num(board, x, y, 4)
+    open3 = count_open_num(board, x, y, 3)
+    closed3 = count_closed_num(board, x, y, 3)
+    open2 = count_open_num(board, x, y, 2)
+    closed2 = count_closed_num(board, x, y, 2)
+    priority += open4 * 1_100_000
+    priority += closed4 * 650_000
+    priority += open3 * 180_000
+    priority += closed3 * 80_000
+    priority += open2 * 15_000
+    priority += closed2 * 6_000
     board[y][x] = EMPTY
 
     # todo
