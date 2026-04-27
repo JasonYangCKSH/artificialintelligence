@@ -4,7 +4,31 @@ import argparse
 from common import *
 
 DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
-WIN_SCORE = 100_000_000
+WHITE_WIN_SCORE = 100_000_000
+BLACK_WIN_SCORE = 90_000_000
+WHITE_OPEN_4 = 6_000_000
+BLACK_OPEN_4 = 8_000_000
+WHITE_CLOSED_4 = 1_500_000
+BLACK_CLOSED_4 = 700_000
+WHITE_OPEN_3 = 240_000
+BLACK_OPEN_3 = 480_000
+WHITE_CLOSED_3 = 60_000
+BLACK_CLOSED_3 = 120_000
+WHITE_OPEN_2 = 15_000
+BLACK_OPEN_2 = 14_000
+WHITE_CLOSED_2 = 4_000
+BLACK_CLOSED_2 = 4_000
+
+WHITE_MULTIPLE_OPEN_4 = 9_000_000
+WHITE_4_3 = 4_000_000
+WHITE_MULTIPLE_OPEN_3 = 1_200_000
+BLACK_MULTIPLE_OPEN_4 = 12_000_000
+BLACK_4_3 = 7_000_000
+BLACK_MULTIPLE_OPEN_3 = 4_000_000
+
+THREAT = 1.15
+
+
 INF = 10**18
 TIME_LIMIT = 4.5
 def parse_args():
@@ -31,189 +55,24 @@ def board_key(board):
 # Evaluation Function
 # ──────────────────────────────────────────────
 
-# 各威脅型樣的基礎分數
 
+'''
 SCORE_TABLE = {
-    5: WIN_SCORE,       # 五連（或長連）
-    'open_four':   100_000,
-    'closed_four':  10_000,
-    'open_three':    1_000,
-    'closed_three':    100,
-    'open_two':         10,
-    'closed_two':        1,
+    5: WIN_SCORE,
+    'open_four': 100_000,
+    'closed_four': 25_000,
+    'open_three':  4_000,
+    'closed_three':  1_000,
+    'open_two':  250,
+    'closed_two'   :  70,
 }
 
-BLACK_PENALTY = 1.2   # 黑方分數懲罰乘數（防守優先）
+
+BLACK_PENALTY = 1.35'''
 
 
-def score_segment(stones: int, open_ends: int) -> int:
-    """
-    根據連子數(stones)與開放端數(open_ends=0/1/2)回傳分數。
-    stones 已排除越界與對方子干擾。
-    """
-    if stones <= 0:
-        return 0
-    if stones >= 5:
-        return WIN_SCORE
-    if stones == 4:
-        return SCORE_TABLE['open_four'] if open_ends == 2 else SCORE_TABLE['closed_four']
-    if stones == 3:
-        return SCORE_TABLE['open_three'] if open_ends == 2 else SCORE_TABLE['closed_three']
-    if stones == 2:
-        return SCORE_TABLE['open_two'] if open_ends == 2 else SCORE_TABLE['closed_two']
-    return 0
 
 
-def scan_line(board, cells: list, color: int) -> int:
-    """
-    掃描一條線（cells 為 (x,y) 序列），統計 color 方在此線的總分。
-    採「連續段落」分析：遇到對方子截斷，統計每段的子數與兩端開放性。
-    同時考慮跳連（空格在中間），使用長度 6 視窗滑動偵測跳連型樣。
-    """
-    size = len(board)
-    opp = opponent(color)
-    total = 0
-    n = len(cells)
-
-    # ── 1. 直接連子段落掃描 ──────────────────────
-    i = 0
-    while i < n:
-        x, y = cells[i]
-        if board[y][x] != color:
-            i += 1
-            continue
-
-        # 找到連子起點，向右延伸
-        j = i
-        while j < n and board[cells[j][1]][cells[j][0]] == color:
-            j += 1
-
-        stones = j - i
-        # 判斷左端是否開放
-        if i > 0:
-            lx, ly = cells[i - 1]
-            left_open = board[ly][lx] == EMPTY
-        else:
-            left_open = False
-        # 判斷右端是否開放
-        if j < n:
-            rx, ry = cells[j]
-            right_open = board[ry][rx] == EMPTY
-        else:
-            right_open = False
-
-        open_ends = (1 if left_open else 0) + (1 if right_open else 0)
-        total += score_segment(stones, open_ends)
-        i = j
-
-    # ── 2. 跳連視窗掃描（長度 ≤ 6 的視窗）─────────
-    # 在視窗中若只有 color 和 EMPTY，則計算 color 子數與兩端狀態
-    WIN = 6
-    for start in range(n - WIN + 1):
-        window = cells[start: start + WIN]
-        # 視窗內不能有對方子
-        if any(board[y][x] == opp for x, y in window):
-            continue
-
-        stones = sum(1 for x, y in window if board[y][x] == color)
-        if stones < 2:
-            continue
-
-        # 跳連：中間有空格才算跳連（連續連已在上方計算）
-        empties_in = sum(1 for x, y in window if board[y][x] == EMPTY)
-        if empties_in == 0:
-            continue  # 純連子已在段落掃描計算
-
-        # 判斷視窗兩端（視窗外一格）的開放性
-        if start > 0:
-            lx, ly = cells[start - 1]
-            left_open = board[ly][lx] == EMPTY
-        else:
-            left_open = False
-        end_idx = start + WIN
-        if end_idx < n:
-            rx, ry = cells[end_idx]
-            right_open = board[ry][rx] == EMPTY
-        else:
-            right_open = False
-
-        open_ends = (1 if left_open else 0) + (1 if right_open else 0)
-        # 跳連視窗內空格數決定「有效」型樣：視窗 6 格內子+空格=6
-        # 跳連分數打折（不如連續強）
-        jump_score = score_segment(stones, open_ends) // 2
-        total += jump_score
-
-    return total
-
-
-def get_all_lines(board) -> list:
-    """
-    產生棋盤所有橫、直、斜線的 (x,y) 序列，供 scan_line 使用。
-    每條線長度需 ≥ 5 才有意義。
-    """
-    size = len(board)
-    lines = []
-
-    # 橫線
-    for y in range(size):
-        lines.append([(x, y) for x in range(size)])
-
-    # 直線
-    for x in range(size):
-        lines.append([(x, y) for y in range(size)])
-
-    # 主對角線（左上→右下）
-    for start in range(-(size - 1), size):
-        line = []
-        for k in range(size):
-            x, y = k, k - start
-            if 0 <= x < size and 0 <= y < size:
-                line.append((x, y))
-        if len(line) >= 5:
-            lines.append(line)
-
-    # 副對角線（右上→左下）
-    for start in range(0, 2 * size - 1):
-        line = []
-        for k in range(size):
-            x, y = k, start - k
-            if 0 <= x < size and 0 <= y < size:
-                line.append((x, y))
-        if len(line) >= 5:
-            lines.append(line)
-
-    return lines
-
-
-# 快取所有線段（棋盤大小固定後不變）
-_cached_lines = None
-_cached_size = None
-
-
-def get_lines_cached(board):
-    global _cached_lines, _cached_size
-    size = len(board)
-    if _cached_size != size:
-        _cached_lines = get_all_lines(board)
-        _cached_size = size
-    return _cached_lines
-
-
-def evaluate_board(board) -> int:
-    """
-    評估函數：回傳「白方分數 - 黑方分數」(White 視角正值)。
-    對每條掃描線分別計算 BLACK / WHITE 的型樣分數。
-    黑方分數乘以懲罰係數以體現防守優先策略。
-    """
-    lines = get_lines_cached(board)
-    white_score = 0
-    black_score = 0
-
-    for line in lines:
-        white_score += scan_line(board, line, WHITE)
-        black_score += scan_line(board, line, BLACK)
-
-    return white_score - int(black_score * BLACK_PENALTY)
 
 def count_open_num(board, x: int, y: int, t: int) -> int:
     if t <= 1 or t >= 5: 
@@ -267,6 +126,29 @@ def count_closed_num(board, x: int, y: int, t: int)->int:
             count+=1
 
     return count
+
+def evaluate_board(board) -> int:
+    size = len(board)
+    white_score = 0
+    black_score = 0
+    for y in range(size):
+        for x in range(size):
+            color = board[y][x]
+            if color == EMPTY:
+                continue
+            
+            open4 = count_open_num(board, x, y, 4)
+            closed4 = count_closed_num(board, x, y, 4)
+            open3 = count_open_num(board, x, y, 3)
+            closed3 = count_closed_num(board, x, y, 3)
+            open2 = count_open_num(board, x, y, 2)
+            closed2 = count_closed_num(board, x, y, 2)
+
+            shape_score = 0
+
+
+
+
 def move_priority(board, x: int, y: int, player: int) -> int:
     """
     計算落子 (x,y) 的啟發優先級分數（越高越優先搜尋）。
@@ -280,12 +162,19 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     # win move
     board[y][x] = player
     if is_win_after_move(board, x, y, player):
-        priority += 100_000_000
+        if player == WHITE:
+            priority += WHITE_WIN_SCORE
+        elif player == BLACK:
+            priority += BLACK_WIN_SCORE
     board[y][x] = EMPTY
+
     # block opponent win move
     board[y][x] = opp
     if is_win_after_move(board, x, y, opp):
-        priority += 90_000_000
+        if opp == BLACK:
+            priority += BLACK_WIN_SCORE
+        elif opp == WHITE:
+            priority += WHITE_WIN_SCORE
     board[y][x] = EMPTY
 
     # ==================================================
@@ -300,24 +189,30 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     closed3 = count_closed_num(board, x, y, 3)
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
-
-    priority += open4   * 7_000_000
-    priority += closed4 * 2_500_000
-    priority += open3   * 280_000
-    priority += closed3 *  65_000
-    priority += open2   *  18_000  
-    priority += closed2 *  5_000
-    # Threats Combination
-    if open3 >= 2:
-        priority += 800_000
-    if open4 >= 2:
-        priority += 100_000
-    if open4 >= 1 and open3 >= 1:
-        priority += 3_500_000
+    if player == WHITE:                          # WIHTE → WHITE
+        priority += open4   * WHITE_OPEN_4
+        priority += closed4 * WHITE_CLOSED_4
+        priority += open3   * WHITE_OPEN_3
+        priority += closed3 * WHITE_CLOSED_3
+        priority += open2   * WHITE_OPEN_2
+        priority += closed2 * WHITE_CLOSED_2
+        if open3 >= 2:          priority += WHITE_MULTIPLE_OPEN_3
+        if open4 >= 2:          priority += WHITE_MULTIPLE_OPEN_4
+        if open4 >= 1 and open3 >= 1: priority += WHITE_4_3
+    elif player == BLACK:
+        priority += open4   * BLACK_OPEN_4
+        priority += closed4 * BLACK_CLOSED_4
+        priority += open3   * BLACK_OPEN_3
+        priority += closed3 * BLACK_CLOSED_3
+        priority += open2   * BLACK_OPEN_2
+        priority += closed2 * BLACK_CLOSED_2
+        if open3 >= 2:          priority += BLACK_MULTIPLE_OPEN_3
+        if open4 >= 2:          priority += BLACK_MULTIPLE_OPEN_4
+        if open4 >= 1 and open3 >= 1: priority += BLACK_4_3
     board[y][x] = EMPTY
 
     # ==================================================
-    #  BLOCK
+    # BLOCK
     # ==================================================
 
     board[y][x] = opp
@@ -327,21 +222,27 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     closed3 = count_closed_num(board, x, y, 3)
     open2 = count_open_num(board, x, y, 2)
     closed2 = count_closed_num(board, x, y, 2)
-    priority += open4   * 7_500_000  
-    priority += closed4 * 700_000 
-    priority += open3   *  450_000   
-    priority += closed3 *   110_000   
-    priority += open2   *    14_000
-    priority += closed2 *    4_000
-    # Threats Combination
-    if open3 >= 2:
-        priority += 800_000
-    if open4 >= 2:
-        priority += 100_000
-    if open4 >= 1 and open3 >= 1:
-        priority += 3_500_000
+    if opp == WHITE:                            
+        priority += open4   * WHITE_OPEN_4   * THREAT
+        priority += closed4 * WHITE_CLOSED_4 * THREAT
+        priority += open3   * WHITE_OPEN_3   * THREAT
+        priority += closed3 * WHITE_CLOSED_3 * THREAT
+        priority += open2   * WHITE_OPEN_2   * THREAT
+        priority += closed2 * WHITE_CLOSED_2 * THREAT
+        if open3 >= 2:               priority += WHITE_MULTIPLE_OPEN_3 * THREAT
+        if open4 >= 2:               priority += WHITE_MULTIPLE_OPEN_4 * THREAT
+        if open4 >= 1 and open3 >= 1: priority += WHITE_4_3            * THREAT
+    elif opp == BLACK:
+        priority += open4   * BLACK_OPEN_4   * THREAT
+        priority += closed4 * BLACK_CLOSED_4 * THREAT
+        priority += open3   * BLACK_OPEN_3   * THREAT
+        priority += closed3 * BLACK_CLOSED_3 * THREAT
+        priority += open2   * BLACK_OPEN_2   * THREAT
+        priority += closed2 * BLACK_CLOSED_2 * THREAT
+        if open3 >= 2:               priority += BLACK_MULTIPLE_OPEN_3 * THREAT
+        if open4 >= 2:               priority += BLACK_MULTIPLE_OPEN_4 * THREAT
+        if open4 >= 1 and open3 >= 1: priority += BLACK_4_3            * THREAT
     board[y][x] = EMPTY
-
   
 
 
@@ -353,6 +254,8 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     max_dist = 2 * center
     dist = abs(x - center) + abs(y - center)
     priority += (max_dist - dist) * 1_000
+
+
 
     # Black Forbidden trap
     if player == WHITE:
@@ -413,7 +316,7 @@ def minimax(board, depth: int, alpha: int, beta: int,
     # 上一手是否已獲勝
     if  last_x >= 0 and is_win_after_move(board, last_x, last_y, last_player):
         if last_player == WHITE:
-            return WIN_SCORE + depth, -1, -1   # 越快贏分越高
+            return WHITE_WIN_SCORE + depth, -1, -1   # 越快贏分越高
         else:
             return -WIN_SCORE - depth, -1, -1
     
