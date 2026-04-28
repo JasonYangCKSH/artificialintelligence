@@ -26,7 +26,7 @@ BLACK_MULTIPLE_OPEN_4 = 12_000_000
 BLACK_4_3 = 7_000_000
 BLACK_MULTIPLE_OPEN_3 = 4_000_000
 
-THREAT = 1.15
+THREAT = 1.25
 
 
 INF = 10**18
@@ -34,7 +34,7 @@ TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=8, help="candidate move cap")
+    parser.add_argument("--max-candidates", type=int, default=5, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -110,7 +110,7 @@ def evaluate_board(board) -> int:
     size = len(board)
     score = 0
 
-    # ── 1. 逐方向序列計分（錨點 = 序列在該方向的起始格） ──────────────
+    # 1. 逐方向序列計分（錨點 = 序列在該方向的起始格
     # 每條序列只從最靠前的那顆子計算，避免 N 顆子把同一段計 N 次
     for y in range(size):
         for x in range(size):
@@ -129,17 +129,17 @@ def evaluate_board(board) -> int:
                     continue
 
                 # 判斷兩端開放性
-                lx, ly = x - dx,          y - dy           # 序列前端外一格
+                lx, ly = x - dx, y - dy           # 序列前端外一格
                 ex, ey = x + length * dx, y + length * dy  # 序列後端外一格
                 left_open  = in_bounds(lx, ly, size) and board[ly][lx] == EMPTY
                 right_open = in_bounds(ex, ey, size) and board[ey][ex] == EMPTY
 
-                # ── 5 連以上 ──
+                # 5 連以上
                 if length >= 5:
                     score += WHITE_WIN_SCORE if color == WHITE else -BLACK_WIN_SCORE
                     continue
 
-                # ── 白方加分 ──
+                # 白方加分
                 if color == WHITE:
                     if length == 4:
                         if   left_open and right_open: score += WHITE_OPEN_4
@@ -150,7 +150,7 @@ def evaluate_board(board) -> int:
                     elif length == 2:
                         if   left_open and right_open: score += WHITE_OPEN_2
                         elif left_open or  right_open: score += WHITE_CLOSED_2
-                # ── 黑方扣分 ──
+                # 黑方扣分
                 else:
                     if length == 4:
                         if   left_open and right_open: score -= BLACK_OPEN_4
@@ -162,7 +162,7 @@ def evaluate_board(board) -> int:
                         if   left_open and right_open: score -= BLACK_OPEN_2
                         elif left_open or  right_open: score -= BLACK_CLOSED_2
 
-    # ── 2. Combo 加／扣分（叉口偵測，與 move_priority 邏輯一致） ──────
+    # 2. Combo 加／扣分（叉口偵測，與 move_priority 邏輯一致）
     # count_open_num 從某格看所有方向，只有真正身處多方向交叉的棋子
     # 才會同時滿足 open4 >= 2 / open3 >= 2 / open4+open3 >= 1 等條件
     for y in range(size):
@@ -338,16 +338,14 @@ def ordered_move(board, player: int, lookahead: int, max_candidates: int, radius
     return [(x, y) for _, x, y in candidates[:max_candidates]]
 
 
-# ──────────────────────────────────────────────
 # Minimax with Alpha-Beta Pruning
-# ──────────────────────────────────────────────
 
 def minimax(board, depth: int, alpha: int, beta: int,
             is_max_layer: bool, last_x: int, last_y: int):
 
     if time.time() - _start_time > TIME_LIMIT:
         return evaluate_board(board), -1, -1 
-    # Step1: Base Case ──────────────────────────────
+    # Step1: Base Case
     # 判斷上一手落子者
     last_player = BLACK if is_max_layer else WHITE  # 剛落完子的是對手
     # 上一手是否已獲勝
@@ -362,10 +360,10 @@ def minimax(board, depth: int, alpha: int, beta: int,
 
     if depth == 0:
         return evaluate_board(board), -1, -1 #  到達搜尋底部，靜態評估
-    # ───────────────────────────────────────────────
+   
 
 
-    # Step2: Transposition Table 查表 ──────────────
+    # Step2: Transposition Table 查表 
     key = board_key(board)
     if key in trans_table:
         entry = trans_table[key]
@@ -378,14 +376,14 @@ def minimax(board, depth: int, alpha: int, beta: int,
                 return s, entry['x'], entry['y']
             elif flag == 'upper' and s <= alpha:
                 return s, entry['x'], entry['y']
-    # ──────────────────────────────────────────
+    
 
 
 
-    # Step3: ── 決定當前落子方 ─────────────────────────
+    # Step3: 決定當前落子方
     current_player = WHITE if is_max_layer else BLACK
 
-    # ── 產生候選棋步 ──────────────────────────
+    # 產生候選棋步
     moves = ordered_move(board,player=current_player,lookahead=depth,max_candidates=ARGS.max_candidates,radius=ARGS.neighbor_radius)
 
     if not moves:
@@ -419,7 +417,7 @@ def minimax(board, depth: int, alpha: int, beta: int,
         if alpha >= beta:
             break  # Alpha-Beta 剪枝
 
-    # ── Transposition Table 存表 ──────────────
+    #  Transposition Table 存表 
     if best_score <= orig_alpha:
         flag = 'upper'
     elif best_score >= beta:
@@ -438,10 +436,7 @@ def minimax(board, depth: int, alpha: int, beta: int,
     return best_score, best_x, best_y
 
 
-# ──────────────────────────────────────────────
-# Read Board & Main (不可修改)
-# ──────────────────────────────────────────────
-
+# Read Board & Main
 def read_board(stream, size):
     line = stream.readline().strip()
     if line != "BOARD":
@@ -462,33 +457,26 @@ def read_board(stream, size):
 
 
 def choose_move(board):
-    """
-    選出最佳落子位置。
-    1. 空盤落中央
-    2. 若白方有直接獲勝棋步，立即落子
-    3. 若黑方有 open_four 或即將獲勝，優先防守
-    4. 否則呼叫 Minimax 搜尋
-    """
     global _start_time
     _start_time = time.time()
     global trans_table
-    trans_table = {}  # 每回合清空，避免過期快取
+    trans_table = {}  
 
     size = len(board)
 
-    # ── 空盤落中央 ────────────────────────────
+    # 空盤落中央
     if is_empty_board(board):
         c = size // 2
         return c, c
 
-    # ── (a) 白方直接獲勝 ──────────────────────
+    # (a) 白方直接獲勝
     size = len(board)
     for y in range(size):
         for x in range(size):
             if board[y][x] == EMPTY and is_legal_move(board, x, y, WHITE):
                 if is_win_after_move(board, x, y, WHITE):
                     return x, y
-    # ── (b) 防守黑方即將獲勝 ──────────────────
+    # (b) 防守黑方即將獲勝 
     size = len(board)
     for y in range(size):
         for x in range(size):
@@ -497,7 +485,7 @@ def choose_move(board):
                     return x, y
 
 
-    # ── Minimax 搜尋 ──────────────────────────
+    # Minimax 搜尋
     _, x, y = minimax(board=board,depth=ARGS.depth,alpha=-INF,beta=INF,is_max_layer=True,last_x=-1,last_y=-1)
 
     # 若 minimax 未能回傳有效棋步，取第一個合法棋步
