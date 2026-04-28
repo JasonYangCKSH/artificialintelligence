@@ -26,7 +26,7 @@ BLACK_MULTIPLE_OPEN_4 = 12_000_000
 BLACK_4_3 = 7_000_000
 BLACK_MULTIPLE_OPEN_3 = 4_000_000
 
-THREAT = 1.25
+THREAT = 1.2
 
 
 INF = 10**18
@@ -34,7 +34,7 @@ TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=5, help="candidate move cap")
+    parser.add_argument("--max-candidates", type=int, default=7, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
