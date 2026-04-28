@@ -33,17 +33,16 @@ INF = 10**18
 TIME_LIMIT = 4.5
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--depth", type=int, default=4, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=6, help="candidate move cap")
+    parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
+    parser.add_argument("--max-candidates", type=int, default=7, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
 ARGS = parse_args()
 
-# ──────────────────────────────────────────────
+
 # Transposition Table（跨節點快取，每回合清空）
-# ──────────────────────────────────────────────
-trans_table: dict = {}
+trans_table = {}
 
 
 def board_key(board):
@@ -51,27 +50,7 @@ def board_key(board):
     return tuple(tuple(row) for row in board)
 
 
-# ──────────────────────────────────────────────
 # Evaluation Function
-# ──────────────────────────────────────────────
-
-
-'''
-SCORE_TABLE = {
-    5: WIN_SCORE,
-    'open_four': 100_000,
-    'closed_four': 25_000,
-    'open_three':  4_000,
-    'closed_three':  1_000,
-    'open_two':  250,
-    'closed_two'   :  70,
-}
-
-
-BLACK_PENALTY = 1.35'''
-
-
-
 
 
 def count_open_num(board, x: int, y: int, t: int) -> int:
@@ -129,24 +108,82 @@ def count_closed_num(board, x: int, y: int, t: int)->int:
 
 def evaluate_board(board) -> int:
     size = len(board)
-    white_score = 0
-    black_score = 0
+    score = 0
+
+    # ── 1. 逐方向序列計分（錨點 = 序列在該方向的起始格） ──────────────
+    # 每條序列只從最靠前的那顆子計算，避免 N 顆子把同一段計 N 次
     for y in range(size):
         for x in range(size):
             color = board[y][x]
             if color == EMPTY:
                 continue
-            
+
+            for dx, dy in DIRECTIONS:
+                # 若往反方向還有同色子，代表本格不是起點 → 跳過
+                px, py = x - dx, y - dy
+                if in_bounds(px, py, size) and board[py][px] == color:
+                    continue
+
+                length = 1 + count_dir(board, x, y, dx, dy, color)
+                if length < 2:
+                    continue
+
+                # 判斷兩端開放性
+                lx, ly = x - dx,          y - dy           # 序列前端外一格
+                ex, ey = x + length * dx, y + length * dy  # 序列後端外一格
+                left_open  = in_bounds(lx, ly, size) and board[ly][lx] == EMPTY
+                right_open = in_bounds(ex, ey, size) and board[ey][ex] == EMPTY
+
+                # ── 5 連以上 ──
+                if length >= 5:
+                    score += WHITE_WIN_SCORE if color == WHITE else -BLACK_WIN_SCORE
+                    continue
+
+                # ── 白方加分 ──
+                if color == WHITE:
+                    if length == 4:
+                        if   left_open and right_open: score += WHITE_OPEN_4
+                        elif left_open or  right_open: score += WHITE_CLOSED_4
+                    elif length == 3:
+                        if   left_open and right_open: score += WHITE_OPEN_3
+                        elif left_open or  right_open: score += WHITE_CLOSED_3
+                    elif length == 2:
+                        if   left_open and right_open: score += WHITE_OPEN_2
+                        elif left_open or  right_open: score += WHITE_CLOSED_2
+                # ── 黑方扣分 ──
+                else:
+                    if length == 4:
+                        if   left_open and right_open: score -= BLACK_OPEN_4
+                        elif left_open or  right_open: score -= BLACK_CLOSED_4
+                    elif length == 3:
+                        if   left_open and right_open: score -= BLACK_OPEN_3
+                        elif left_open or  right_open: score -= BLACK_CLOSED_3
+                    elif length == 2:
+                        if   left_open and right_open: score -= BLACK_OPEN_2
+                        elif left_open or  right_open: score -= BLACK_CLOSED_2
+
+    # ── 2. Combo 加／扣分（叉口偵測，與 move_priority 邏輯一致） ──────
+    # count_open_num 從某格看所有方向，只有真正身處多方向交叉的棋子
+    # 才會同時滿足 open4 >= 2 / open3 >= 2 / open4+open3 >= 1 等條件
+    for y in range(size):
+        for x in range(size):
+            color = board[y][x]
+            if color == EMPTY:
+                continue
+
             open4 = count_open_num(board, x, y, 4)
-            closed4 = count_closed_num(board, x, y, 4)
             open3 = count_open_num(board, x, y, 3)
-            closed3 = count_closed_num(board, x, y, 3)
-            open2 = count_open_num(board, x, y, 2)
-            closed2 = count_closed_num(board, x, y, 2)
 
-            shape_score = 0
+            if color == WHITE:
+                if open4 >= 2:                    score += WHITE_MULTIPLE_OPEN_4
+                if open3 >= 2:                    score += WHITE_MULTIPLE_OPEN_3
+                if open4 >= 1 and open3 >= 1:    score += WHITE_4_3
+            else:  # BLACK
+                if open4 >= 2:                    score -= BLACK_MULTIPLE_OPEN_4
+                if open3 >= 2:                    score -= BLACK_MULTIPLE_OPEN_3
+                if open4 >= 1 and open3 >= 1:    score -= BLACK_4_3
 
-
+    return score
 
 
 def move_priority(board, x: int, y: int, player: int) -> int:
@@ -318,7 +355,7 @@ def minimax(board, depth: int, alpha: int, beta: int,
         if last_player == WHITE:
             return WHITE_WIN_SCORE + depth, -1, -1   # 越快贏分越高
         else:
-            return -WIN_SCORE - depth, -1, -1
+            return -BLACK_WIN_SCORE - depth, -1, -1
     
     if board_full(board):
         return 0, -1, -1  # DRAW: return score = 0
