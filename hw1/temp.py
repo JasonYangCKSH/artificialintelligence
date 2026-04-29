@@ -34,7 +34,7 @@ TIME_LIMIT = 4.9
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
-    parser.add_argument("--max-candidates", type=int, default=6, help="candidate move cap")
+    parser.add_argument("--max-candidates", type=int, default=7, help="candidate move cap")
     parser.add_argument("--neighbor-radius", type=int, default=2, help="generate moves near existing stones")
     return parser.parse_args()
 
@@ -298,7 +298,7 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     if player == WHITE:
         board[y][x] = BLACK
         if is_black_forbidden_after_move(board, x, y):
-            priority += 5_000
+            priority += 40_000
         board[y][x] = EMPTY
     
     return priority
@@ -342,29 +342,30 @@ def ordered_move(board, player: int, lookahead: int, max_candidates: int, radius
 # Minimax with Alpha-Beta Pruning
 
 def minimax(board, depth: int, alpha: int, beta: int,
-            is_max_layer: bool, last_x: int, last_y: int):
-
+            is_max_layer: bool, last_x: int, last_y: int, current_depth: int = 0):
+    """
+    current_depth: 用於追蹤目前的搜尋層次 (0 代表根節點第一層)
+    """
+    # 1. 時間終止檢查
     if time.time() - _start_time > TIME_LIMIT:
         return evaluate_board(board), -1, -1 
-    # Step1: Base Case
+
+    # 2. Base Case: 判斷勝負
     # 判斷上一手落子者
     last_player = BLACK if is_max_layer else WHITE  # 剛落完子的是對手
-    # 上一手是否已獲勝
-    if  last_x >= 0 and is_win_after_move(board, last_x, last_y, last_player):
+    if last_x >= 0 and is_win_after_move(board, last_x, last_y, last_player):
         if last_player == WHITE:
             return WHITE_WIN_SCORE + depth, -1, -1   # 越快贏分越高
         else:
             return -BLACK_WIN_SCORE - depth, -1, -1
     
     if board_full(board):
-        return 0, -1, -1  # DRAW: return score = 0
+        return 0, -1, -1 
 
     if depth == 0:
-        return evaluate_board(board), -1, -1 #  到達搜尋底部，靜態評估
-   
+        return evaluate_board(board), -1, -1 
 
-
-    # Step2: Transposition Table 查表 
+    # 3. Transposition Table 查表 
     key = board_key(board)
     if key in trans_table:
         entry = trans_table[key]
@@ -377,15 +378,27 @@ def minimax(board, depth: int, alpha: int, beta: int,
                 return s, entry['x'], entry['y']
             elif flag == 'upper' and s <= alpha:
                 return s, entry['x'], entry['y']
-    
 
-
-
-    # Step3: 決定當前落子方
+    # 4. 決定當前落子方
     current_player = WHITE if is_max_layer else BLACK
 
-    # 產生候選棋步
-    moves = ordered_move(board,player=current_player,lookahead=depth,max_candidates=ARGS.max_candidates,radius=ARGS.neighbor_radius)
+    # --- 實作動態 Max-Candidates 邏輯 ---
+    # 在搜尋的前兩層 (0, 1)，稍微放寬眼界 (+3)
+    # 在較深層級，縮減搜尋寬度，確保能快速完成計算 (最少維持 4 步)
+    if current_depth < 2:
+        dynamic_max = ARGS.max_candidates + 3
+    else:
+        dynamic_max = max(4, ARGS.max_candidates - 2)
+    # ----------------------------------
+
+    # 產生並排序候選棋步
+    moves = ordered_move(
+        board, 
+        player=current_player, 
+        lookahead=depth, 
+        max_candidates=dynamic_max, 
+        radius=ARGS.neighbor_radius
+    )
 
     if not moves:
         return evaluate_board(board), -1, -1
@@ -396,29 +409,31 @@ def minimax(board, depth: int, alpha: int, beta: int,
 
     for x, y in moves:
         board[y][x] = current_player
-        # ------------------------------->DFS itself <------------------------------
+        
+        # 遞迴呼叫時 current_depth + 1
         score, _, _ = minimax(
             board, depth - 1, alpha, beta,
-            not is_max_layer, x, y
+            not is_max_layer, x, y, current_depth + 1
         )
 
         board[y][x] = EMPTY
-        # 往上回傳
+        
+        # Alpha-Beta Pruning 邏輯
         if is_max_layer:
             if score > best_score:
                 best_score = score
                 best_x, best_y = x, y
-            alpha = max(alpha, best_score) # parent = bigger child
+            alpha = max(alpha, best_score)
         else:
             if score < best_score:
                 best_score = score
                 best_x, best_y = x, y
-            beta = min(beta, best_score) # parent = smaller child
+            beta = min(beta, best_score)
 
         if alpha >= beta:
-            break  # Alpha-Beta 剪枝
+            break  # 剪枝觸發
 
-    #  Transposition Table 存表 
+    # 5. Transposition Table 存表 
     if best_score <= orig_alpha:
         flag = 'upper'
     elif best_score >= beta:
@@ -465,33 +480,41 @@ def choose_move(board):
 
     size = len(board)
 
-    # 空盤落中央
+    # 1. 開局處理：空盤落中央
     if is_empty_board(board):
         c = size // 2
         return c, c
 
-    # (a) 白方直接獲勝
-    size = len(board)
+    # 2. 立即獲勝或防守判斷 (Greedy Check)
+    # (a) 我方 (白方) 是否有立即致勝點
     for y in range(size):
         for x in range(size):
             if board[y][x] == EMPTY and is_legal_move(board, x, y, WHITE):
                 if is_win_after_move(board, x, y, WHITE):
                     return x, y
-    # (b) 防守黑方即將獲勝 
-    size = len(board)
+    
+    # (b) 對手 (黑方) 是否有立即致勝點 (需防守)
     for y in range(size):
         for x in range(size):
             if board[y][x] == EMPTY and is_legal_move(board, x, y, BLACK):
                 if is_win_after_move(board, x, y, BLACK):
                     return x, y
 
+    # 3. 進入 Minimax 搜尋
+    # 注意：這裡多傳入一個參數 current_depth=0
+    _, x, y = minimax(
+        board=board,
+        depth=ARGS.depth,
+        alpha=-INF,
+        beta=INF,
+        is_max_layer=True,
+        last_x=-1,
+        last_y=-1,
+        current_depth=0
+    )
 
-    # Minimax 搜尋
-    _, x, y = minimax(board=board,depth=ARGS.depth,alpha=-INF,beta=INF,is_max_layer=True,last_x=-1,last_y=-1)
-
-    # 若 minimax 未能回傳有效棋步，取第一個合法棋步
+    # 4. 例外處理 (Fallback)
     if x < 0 or y < 0 or not is_legal_move(board, x, y, WHITE):
-        
         fallback = ordered_move(board, WHITE, ARGS.depth,
                                 ARGS.max_candidates, ARGS.neighbor_radius)
         if fallback:
