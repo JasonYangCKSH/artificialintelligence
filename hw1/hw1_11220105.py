@@ -30,7 +30,7 @@ THREAT = 1.2
 
 
 INF = 10**18
-TIME_LIMIT = 4.5
+TIME_LIMIT = 4.9
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int, default=5, help="minimax search depth")
@@ -293,15 +293,16 @@ def move_priority(board, x: int, y: int, player: int) -> int:
     priority += (max_dist - dist) * 1_000
 
 
-
+    
     # Black Forbidden trap
     if player == WHITE:
         board[y][x] = BLACK
         if is_black_forbidden_after_move(board, x, y):
             priority += 40_000
         board[y][x] = EMPTY
+    
     return priority
-
+    
 
 
 
